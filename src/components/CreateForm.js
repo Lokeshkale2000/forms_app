@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
 
 const CreateForm = () => {
   const [label, setLabel] = useState("My New Form");
@@ -27,43 +29,42 @@ const CreateForm = () => {
     setInputs(updatedInputs);
   };
 
-  const handleSaveForm = () => {
-
+  const handleSaveForm = async () => {
     if (!label.trim()) {
-        alert("Please enter a form title.");
-        return;
-      }
-  
-      if (inputs.length === 0) {
-        alert("Please add at least one field to the form.");
-        return;
-      }
+      alert("Please enter a form title.");
+      return;
+    }
 
-    const newForm = { label, inputs };
-    const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
-    savedForms.push(newForm);
-    localStorage.setItem("forms", JSON.stringify(savedForms));
-    navigate("/");
+    if (inputs.length === 0) {
+      alert("Please add at least one field to the form.");
+      return;
+    }
+
+    try {
+      const newForm = { label, inputs };
+      await axios.post("https://localhost:8080/api/forms", newForm);
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving form", error);
+    }
   };
 
   return (
     <div className="container">
-      <button className="back-button" onClick={() => navigate("/")}>
-        Back
-      </button>
       <h1>Create Form</h1>
       <input
         type="text"
         placeholder="Form Label"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
+        style={{padding:"7px"}}
       />
       <div className="form-controls">
-        <button onClick={() => addInput("text")}>Add Text</button>
-        <button onClick={() => addInput("email")}>Add Email</button>
-        <button onClick={() => addInput("password")}>Add Password</button>
-        <button onClick={() => addInput("number")}>Add Number</button>
-        <button onClick={() => addInput("date")}>Add Date</button>
+        <button onClick={() => addInput("text")} style={{background:'blue',color:'white'}}>Add Text</button>
+        <button onClick={() => addInput("email")} style={{background:'blue',color:'white'}}>Add Email</button>
+        <button onClick={() => addInput("password")} style={{background:'blue',color:'white'}}>Add Password</button>
+        <button onClick={() => addInput("number")} style={{background:'blue',color:'white'}}>Add Number</button>
+        <button onClick={() => addInput("date")} style={{background:'blue',color:'white'}}>Add Date</button>
       </div>
       {inputs.map((input, index) => (
         <div key={index}>
@@ -73,18 +74,22 @@ const CreateForm = () => {
             placeholder="Input Label"
             value={input.label}
             onChange={(e) => handleInputChange(index, "label", e.target.value)}
+            style={{padding:'7px',marginTop:'10px'}}
           />
+          <br></br>
           <input
             type="text"
             placeholder={input.placeholder}
             value={input.placeholder}
             onChange={(e) =>
               handleInputChange(index, "placeholder", e.target.value)
+              
             }
+            style={{padding:'7px',marginTop:'10px'}}
           />
         </div>
       ))}
-      <button className="primary" onClick={handleSaveForm}>
+      <button className="primary" onClick={handleSaveForm} style={{marginTop:'10px'}}>
         Save Form
       </button>
     </div>

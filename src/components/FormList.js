@@ -1,33 +1,69 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const FormList = () => {
   const navigate = useNavigate();
-  const [forms, setForms] = React.useState(JSON.parse(localStorage.getItem("forms")) || []);
+  const [forms, setForms] = useState([]);
 
-  const handleDeleteForm = (index) => {
-    const updatedForms = forms.filter((_, i) => i !== index);
-    setForms(updatedForms);
-    localStorage.setItem("forms", JSON.stringify(updatedForms));
+
+  useEffect(() => {
+    const fetchForms = async () => {
+      try {
+        const response = await axios.get('https://localhost:8080/api/forms');
+        setForms(response.data);
+      } catch (error) {
+        console.error('Error fetching forms', error);
+      }
+    };
+    fetchForms();
+  }, []);
+
+  
+  const handleDeleteForm = async (id) => {
+    try {
+      await axios.delete(`https://localhost:8080/api/forms/${id}`);
+      setForms(forms.filter((form) => form._id !== id)); 
+    } catch (error) {
+      console.error('Error deleting form', error);
+    }
   };
 
   return (
     <div className="container form-list">
       <h1>Form List</h1>
-      <button className="primary" onClick={() => navigate("/form/create")}>Create New Form</button>
+      <button className="primary" onClick={() => navigate("/form/create")}>
+        Create New Form
+      </button>
       {forms.length === 0 ? (
         <p>No forms available. Please create a new form.</p>
       ) : (
-      <ul>
-        {forms.map((form, index) => (
-          <li key={index}>
-            <span>{form.title || `Form ${index + 1}`}</span>
-            <button className="edit" onClick={() => navigate(`/form/${index}/edit`)}>Edit</button>
-            <button className="primary" onClick={() => navigate(`/form/${index}`)}>View</button>
-            <button className="delete" onClick={() => handleDeleteForm(index)}>Delete</button>
-          </li>
-        ))}
-      </ul>)}
+        <ul>
+          {forms.map((form) => (
+            <li key={form._id}>
+              <span>{form.label || `Form ${form._id}`}</span>
+              <button
+                className="edit"
+                onClick={() => navigate(`/form/${form._id}/edit`)}
+              >
+                Edit
+              </button>
+              <button
+                className="primary"
+                onClick={() => navigate(`/form/${form._id}`)}
+              >
+                View
+              </button>
+              <button
+                className="delete"
+                onClick={() => handleDeleteForm(form._id)}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const EditForm = () => {
   const { id } = useParams();
@@ -8,35 +9,17 @@ const EditForm = () => {
   const [inputs, setInputs] = useState([]);
 
   useEffect(() => {
-    const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
-    const formToEdit = savedForms[id];
-    if (formToEdit) {
-      setLabel(formToEdit.label || "My Edited Form");
-      setInputs(
-        formToEdit.inputs.map((input) => ({
-          ...input,
-          label: input.label || `${input.type} Field`,
-          placeholder: input.placeholder || `Enter ${input.type}`,
-        }))
-      );
-    }
-  }, [id]);
-
-  const addInput = (type) => {
-    const defaultValues = {
-      text: { label: "Text Field", placeholder: "Enter text here" },
-      email: { label: "Email Field", placeholder: "Enter your email" },
-      password: { label: "Password Field", placeholder: "Enter your password" },
-      number: { label: "Number Field", placeholder: "Enter a number" },
-      date: { label: "Date Field", placeholder: "Select a date" },
+    const fetchForm = async () => {
+      try {
+        const response = await axios.get(`https://pepper-cloud-backend-efno.vercel.app/api/forms/${id}`);
+        setLabel(response.data.label);
+        setInputs(response.data.inputs);
+      } catch (error) {
+        console.error("Error fetching form", error);
+      }
     };
-
-    if (inputs.length < 20) {
-      setInputs([...inputs, { type, ...defaultValues[type] }]);
-    } else {
-      alert("Maximum of 20 fields allowed.");
-    }
-  };
+    fetchForm();
+  }, [id]);
 
   const handleInputChange = (index, key, value) => {
     const updatedInputs = [...inputs];
@@ -44,12 +27,17 @@ const EditForm = () => {
     setInputs(updatedInputs);
   };
 
-  const removeInput = (index) => {
-    const updatedInputs = inputs.filter((_, i) => i !== index);
-    setInputs(updatedInputs);
+  
+  const addInput = (type) => {
+    const defaultInput = {
+      type,
+      label: `${type.charAt(0).toUpperCase() + type.slice(1)} Field`,
+      placeholder: `Enter ${type} here`,
+    };
+    setInputs([...inputs, defaultInput]);
   };
 
-  const handleSaveForm = () => {
+  const handleSaveForm = async () => {
     if (!label.trim()) {
       alert("Please enter a form title.");
       return;
@@ -60,10 +48,13 @@ const EditForm = () => {
       return;
     }
 
-    const savedForms = JSON.parse(localStorage.getItem("forms")) || [];
-    savedForms[id] = { label, inputs };
-    localStorage.setItem("forms", JSON.stringify(savedForms));
-    navigate("/");
+    try {
+      const updatedForm = { label, inputs };
+      await axios.put(`https://localhost:8080/api/forms/${id}`, updatedForm);
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving form", error);
+    }
   };
 
   return (
@@ -78,15 +69,27 @@ const EditForm = () => {
         value={label}
         onChange={(e) => setLabel(e.target.value)}
       />
+      
+      {/* Add buttons to add different types of inputs */}
+      <div className="input-buttons" style={{margin:"20px"}}>
+        <button onClick={() => addInput("text")} style={{background:'blue' ,color:"white",marginRight:"10px"}}>Add Text Field</button>
+        <button onClick={() => addInput("email")} style={{background:'blue' ,color:"white",marginRight:"10px"}}>Add Email Field</button>
+        <button onClick={() => addInput("password")} style={{background:'blue' ,color:"white",marginRight:"10px"}}>Add Password Field</button>
+        <button onClick={() => addInput("number")} style={{background:'blue' ,color:"white",marginRight:"10px", marginTop:"10px"}}>Add Number Field</button>
+        <button onClick={() => addInput("date")} style={{background:'blue' ,color:"white",marginRight:"10px", marginTop:"10px"}}>Add Date Field</button>
+      </div>
+
       {inputs.map((input, index) => (
         <div key={index}>
-          <h3>{input.type}</h3>
+          <h3 >{input.type.charAt(0).toUpperCase() + input.type.slice(1)}</h3>
           <input
             type="text"
             placeholder="Input Label"
             value={input.label}
             onChange={(e) => handleInputChange(index, "label", e.target.value)}
+            style={{padding:'7px'}}
           />
+      
           <input
             type="text"
             placeholder={input.placeholder}
@@ -94,21 +97,13 @@ const EditForm = () => {
             onChange={(e) =>
               handleInputChange(index, "placeholder", e.target.value)
             }
+            style={{padding:'7px',marginLeft:'10px'}}
           />
-          <button className="delete" onClick={() => removeInput(index)}>
-            Remove
-          </button>
         </div>
       ))}
-      <div className="form-controls">
-        <button onClick={() => addInput("text")}>Add Text</button>
-        <button onClick={() => addInput("email")}>Add Email</button>
-        <button onClick={() => addInput("password")}>Add Password</button>
-        <button onClick={() => addInput("number")}>Add Number</button>
-        <button onClick={() => addInput("date")}>Add Date</button>
-      </div>
-      <button className="primary" onClick={handleSaveForm}>
-        Save Changes
+
+      <button className="primary" onClick={handleSaveForm} style={{marginTop:'20px'}}>
+        Save Form
       </button>
     </div>
   );
